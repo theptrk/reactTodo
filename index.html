@@ -27,6 +27,26 @@
           });
         },
 
+        // We are passing in this callback as part of the render method
+        handleCommentSubmit: function(comment) {
+          var comments = this.state.data;
+          var newComments = comments.concat([comment]);
+          this.setState({data: newComments});
+
+          $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            type: 'POST',
+            data: comment,
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+          });
+        },
+
         // this.state is private to the component and can be changed by calling this.setState().
         // When the state is updated, the component re-renders itself.
         getInitialState: function() {
@@ -49,7 +69,7 @@
             <div className="commentBox">
               <h1>Comments</h1>
               <CommentList data={this.state.data} />
-              <CommentForm />
+              <CommentForm onCommentSubmit={this.handleCommentSubmit} />
             </div>
           );
         }
@@ -89,6 +109,37 @@
           );
         }
       });
+      
+      var CommentForm = React.createClass({
+        // We use the ref attribute to assign a name to a child component and 
+        // this.refs to reference the component. 
+        // We can call getDOMNode() on a component to get the native browser DOM element.
+        handleSubmit: function(e) {
+          e.preventDefault();
+          var author = this.refs.author.getDOMNode().value.trim();
+          var text = this.refs.text.getDOMNode().value.trim();
+          if (!text || !author) {
+            return;
+          }
+          this.props.onCommentSubmit({author: author, text: text});
+          this.refs.author.getDOMNode().value = '';
+          this.refs.text.getDOMNode().value = '';
+          return;
+        },
+
+        // onSubmit uses method from this class
+        render: function(){
+          return (
+            <form className="commentForm" onSubmit={this.handleSubmit}>
+              <input type="text" placeholder="Your name" ref="author" />
+              <input type="text" placeholder="Say something..." ref="text" />
+              <input type="submit" value="Post" />
+            </form>
+          );
+        }
+      });
+      
+      // We can render the components with data
       React.renderComponent(
         <CommentBox url="comments.json" pollInterval={2000} />,
         document.getElementById('content')
