@@ -12,17 +12,85 @@
     <script type="text/jsx">
       /** @jsx React.DOM */
       // The above declaration must remain intact at the top of the script.
+      
       var CommentBox = React.createClass({
+        loadCommentsFromServer: function() {
+          $.ajax({
+            url: this.props.url,
+            dataType:'json',
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+          });
+        },
+
+        // this.state is private to the component and can be changed by calling this.setState().
+        // When the state is updated, the component re-renders itself.
+        getInitialState: function() {
+          return {data: []};
+        },
+
+        // Here, componentDidMount is a method called automatically by React 
+        // when a component is rendered
+        componentDidMount: function() {
+          this.loadCommentsFromServer();
+          setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+        },
+
+        // render returns a tree of React components later rendered to HTML 
+        // these `div` elements are actually React div components
         render: function() {
+
+          // <Component_Name /> is how React devs injects components
           return (
             <div className="commentBox">
-              Hello, world! I am a CommentBox.
+              <h1>Comments</h1>
+              <CommentList data={this.state.data} />
+              <CommentForm />
+            </div>
+          );
+        }
+      });
+
+      var CommentList = React.createClass({
+
+        // <Component_Name attr1="val1"> text </Component_Name> is how devs inject with props
+        // Here we map and render the array as {commentNodes}
+        render: function(){
+          var commentNodes = this.props.data.map(function(comment){
+            return (
+              <Comment author={comment.author}> 
+                {comment.text}
+              </Comment>
+              );
+          })
+          return (
+            <div className="commentList">
+              {commentNodes}
+            </div>
+          );
+        }
+      });
+
+      var Comment = React.createClass({
+        // We access named attributes passed to the component as keys on this.props 
+        // and any nested elements as this.props.children.
+        render: function(){
+          return (
+            <div className="comment">
+              <h2 className="commentAuthor">
+                {this.props.author}
+              </h2>
+              {this.props.children}
             </div>
           );
         }
       });
       React.renderComponent(
-        <CommentBox />,
+        <CommentBox url="comments.json" pollInterval={2000} />,
         document.getElementById('content')
       );
     </script>
